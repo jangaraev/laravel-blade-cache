@@ -1,0 +1,32 @@
+{
+  "name": "jangaraev/laravel-blade-cache",
+  "type": "library",
+  "description": "Handy package to cache blade files",
+  "keywords": ["laravel", "php", "views", "cache", "blade"],
+  "homepage": "https://github.com/jangaraev/laravel-blade-cache",
+  "authors": [
+    {
+      "name": "Janur Jangaraev",
+      "email": "janur.jangaraev@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "illuminate/support": "^8.0|^9.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Jangaraev\\LaravelBladeCache\\": "src"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Jangaraev\\LaravelBladeCache\\ServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
