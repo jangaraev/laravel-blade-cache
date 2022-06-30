@@ -8,11 +8,12 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 class BladeCache
 {
+    const VIEW = 'view';
     const TTL = 'ttl';
     const VARIABLES = 'variables';
 
 
-    public function reset(string $view): void
+    public function reset(string $key): void
     {
         $locales = [config('app.locale')];
 
@@ -21,7 +22,7 @@ class BladeCache
         }
 
         foreach ($locales as $locale) {
-            $cacheKey = self::getQualifiedCacheKey($view, $locale);
+            $cacheKey = self::getQualifiedCacheKey($key, $locale);
 
             if (Cache::has($cacheKey)) {
                 Cache::forget($cacheKey);
@@ -29,20 +30,20 @@ class BladeCache
         }
     }
 
-    public static function get(string $view): bool
+    public static function get(string $key): ?string
     {
-        return Cache::remember(self::getQualifiedCacheKey($view), self::getSection($view, self::TTL), function () use ($view) {
-            return self::render($view);
+        return Cache::remember(self::getQualifiedCacheKey($key), self::getSection($key, self::TTL), function () use ($key) {
+            return self::render($key);
         });
     }
 
-    protected static function getSection(string $view, string $param = null): mixed
+    protected static function getSection(string $key, string $param = null): mixed
     {
         if (is_null($param)) {
-            return config('blade-cache.' . $view);
+            return config('blade-cache.' . $key);
         }
 
-        $value = config('blade-cache.' . $view)[$param] ?? null;
+        $value = config('blade-cache.' . $key)[$param] ?? null;
 
         if (self::TTL === $param) {
             return ($value ?? 60) * 60;
@@ -51,29 +52,23 @@ class BladeCache
         return $value;
     }
 
-    protected static function render(string $view): ?string
+    protected static function render(string $key): ?string
     {
-        $section = self::getSection($view);
+        $section = self::getSection($key);
 
         if (!$section) {
             return null;
         }
 
-        return (string)view($view, self::resolveViewVariables($section[self::VARIABLES]));
+        return (string)view($section[self::VIEW], call_user_func($section[self::VARIABLES]));
     }
 
-    protected static function getQualifiedCacheKey(string $view, string $locale = null): string
+    protected static function getQualifiedCacheKey(string $key, string $locale = null): string
     {
         if (is_null($locale)) {
             $locale = App::getLocale();
         }
 
-        return "blade-cache.{$view}.{$locale}";
-    }
-
-    protected static function resolveViewVariables(array $variables): array
-    {
-        return collect($variables)
-            ->transform(fn ($cb) => call_user_func($cb));
+        return "blade-cache.{$key}.{$locale}";
     }
 }

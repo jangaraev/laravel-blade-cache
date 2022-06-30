@@ -21,7 +21,7 @@ class ServiceProvider extends IlluminateServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../../config/config.php', 'blade-cache'
+            __DIR__.'/../config/config.php', 'blade-cache'
         );
     }
 }
