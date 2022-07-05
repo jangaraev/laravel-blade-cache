@@ -1,4 +1,4 @@
-<?php
+=<?php
 
 namespace Jangaraev\LaravelBladeCache;
 
@@ -9,19 +9,8 @@ class ServiceProvider extends IlluminateServiceProvider
 {
     public function boot(): void
     {
-        $this->publishes([
-            __DIR__.'/../config/config.php' => config_path('blade-cache.php'),
-        ], 'config');
-
-        Blade::directive('cache', function ($key): string {
-            return "<?php echo \\Jangaraev\LaravelBladeCache\\BladeCache::get($key) ?>";
+        Blade::directive('cache', function ($args): string {
+            return "<?php echo \\Jangaraev\LaravelBladeCache\\BladeCache::get(\"{$args}\") ?>";
         });
-    }
-
-    public function register(): void
-    {
-        $this->mergeConfigFrom(
-            __DIR__.'/../config/config.php', 'blade-cache'
-        );
     }
 }

@@ -1,6 +1,12 @@
 # laravel-blade-cache
 
-A small package to cache blade views.
+A small package to cache blade views. It caches the whole contents
+of rendered blade file as a regular cache item and then just outputs
+it from cache during next requests.
+
+It gives a significant speed & memory usage improvement in case if
+a large dataset is to be processed in blade files, typically a large
+Eloquent collection with lots of relationships loaded.
 
 ## Installation
 
@@ -8,36 +14,49 @@ A small package to cache blade views.
 $ composer require jangaraev/laravel-blade-cache
 ```
 
-Once installed, you have to publish the config file.
-
-```bash
-$ php artisan vendor:publish --provider="Jangaraev\LaravelBladeCache\ServiceProvider" --tag="config"
-```
-
-This will create the `blade-cache` config file.
-
 ## Usage
 
 In Blade files call the `@cache` view helper where needed.
 
+Arguments:
+1. `$view` - view name
+2. `$ttl` - cache ttl, optional, default is one hour (`60`)
+
 ```blade
 // before
-@include('components.homepage.categories')
+@include('homepage.categories')
 
 // after
-@cache('homepage_categories')
+@cache('homepage.categories', 30)
 ```
 
-Then create an appropriate config file record:
+Then you should use a view composer to pass the data to view: https://laravel.com/docs/views#view-composers
+
+For example, in your `AppServiceProvider`:
 
 ```php
-    'homepage_categories' => [
-        'view' => 'components.homepage.categories', // blade file is referenced here
-        'ttl' => 90, // cache TTL in minutes
-        'variables' => fn () => [ // closure to collect variables used in blade file
-            //'foo' => \App\Models\Foo::get()
-        ]
-    ],
+
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    // ...
+    
+    public function boot()
+    {
+        View::composer('homepage.categories', function (\Illuminate\View\View $view) {
+            $view->with('records', \App\Repositories\Foo::get());
+        });
+        
+        View::composer('components.listings', function (\Illuminate\View\View $view) {
+            $view->with([
+                'block_title' => __('titles.new'),
+                'listings' => \App\Models\FooBar::getRecent(),
+                'seeMore' => route('listings.latest')
+            ]);
+        });
+}
 ```
 
 ## License

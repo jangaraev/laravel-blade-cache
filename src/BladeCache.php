@@ -4,14 +4,19 @@ namespace Jangaraev\LaravelBladeCache;
 
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\View;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 class BladeCache
 {
-    const VIEW = 'view';
-    const TTL = 'ttl';
-    const VARIABLES = 'variables';
+    public static function get(string $args): string
+    {
+        [$view, $ttl] = self::extractArgumentsFromDirective($args);
 
+        return Cache::remember(self::getQualifiedCacheKey($view), $ttl, function () use ($view) {
+            return self::render($view);
+        });
+    }
 
     public function reset(string $key): void
     {
@@ -30,45 +35,39 @@ class BladeCache
         }
     }
 
-    public static function get(string $key): ?string
-    {
-        return Cache::remember(self::getQualifiedCacheKey($key), self::getSection($key, self::TTL), function () use ($key) {
-            return self::render($key);
-        });
-    }
 
-    protected static function getSection(string $key, string $param = null): mixed
+    /**
+     * @return array<string, int>
+     */
+    private static function extractArgumentsFromDirective(string $args): array
     {
-        if (is_null($param)) {
-            return config('blade-cache.' . $key);
+        $explodedArgs = explode(',', $args);
+
+        if (count($explodedArgs) < 1) {
+            throw new \InvalidArgumentException();
         }
 
-        $value = config('blade-cache.' . $key)[$param] ?? null;
+        $view = trim($explodedArgs[0], "'\"");
+        $ttl = isset($explodedArgs[1]) ? trim($explodedArgs[1]) : 60;
 
-        if (self::TTL === $param) {
-            return ($value ?? 60) * 60;
+        if (!is_numeric($ttl)) {
+            throw new \InvalidArgumentException('TTL argument should be an integer.');
         }
 
-        return $value;
+        return [$view, (int)$ttl];
     }
 
-    protected static function render(string $key): ?string
+    protected static function render(string $view): string
     {
-        $section = self::getSection($key);
-
-        if (!$section) {
-            return null;
-        }
-
-        return (string)view($section[self::VIEW], call_user_func($section[self::VARIABLES]));
+        return (string)View::make($view);
     }
 
-    protected static function getQualifiedCacheKey(string $key, string $locale = null): string
+    protected static function getQualifiedCacheKey(string $view, string $locale = null): string
     {
         if (is_null($locale)) {
             $locale = App::getLocale();
         }
 
-        return "blade-cache.{$key}.{$locale}";
+        return "blade-cache.{$view}.{$locale}";
     }
 }
