@@ -13,7 +13,7 @@ class BladeCache
     {
         [$view, $ttl] = self::extractArgumentsFromDirective($args);
 
-        return Cache::remember(self::getQualifiedCacheKey($view), $ttl, function () use ($view) {
+        return Cache::remember(self::getQualifiedCacheKey($view), $ttl * 60, function () use ($view) {
             return self::render($view);
         });
     }
@@ -27,9 +27,7 @@ class BladeCache
         }
 
         foreach ($locales as $locale) {
-            $cacheKey = self::getQualifiedCacheKey($key, $locale);
-
-            if (Cache::has($cacheKey)) {
+            if (Cache::has($cacheKey = self::getQualifiedCacheKey($key, $locale))) {
                 Cache::forget($cacheKey);
             }
         }
@@ -64,8 +62,12 @@ class BladeCache
 
     protected static function getQualifiedCacheKey(string $view, string $locale = null): string
     {
+        $view = str_replace('.', '_', $view);
+
         if (is_null($locale)) {
-            $locale = App::getLocale();
+            $locale = class_exists('LaravelLocalization')
+                ? LaravelLocalization::getCurrentLocale()
+                : App::getLocale();
         }
 
         return "blade-cache.{$view}.{$locale}";
